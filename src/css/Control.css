@@ -1,0 +1,37 @@
+.Control{
+    width: 100%;
+    height: 80px;
+    line-height: 80px;
+    position: fixed;
+    bottom: 0;
+    left:0;
+    display: flex;
+}
+
+.Control .area{
+    display: flex;
+    justify-content: center;
+}
+
+.Control .area.left, .Control .area.right{
+    flex: 1;
+}
+
+.Control .area.center{
+    flex: 4;
+}
+
+.Control .play-button{
+    display: inline-block;
+    width: 60px;
+    height: 60px;
+}
+
+.Control .area.center .play-button{
+    margin: 0 15px;
+}
+
+.Control .play-button.list{
+   
+}
+
