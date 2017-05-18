@@ -58,19 +58,9 @@
 
 	var _List2 = _interopRequireDefault(_List);
 
-	__webpack_require__(199);
+	__webpack_require__(200);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-	var _window$require = window.require('electron'),
-	    ipcRenderer = _window$require.ipcRenderer;
-
-	var songs = null;
-	ipcRenderer.on('songs_imported', function (event, files) {
-	    console.log(files);
-	    songs = files ? files : [];
-	    _reactDom2.default.render(React.createElement(_List2.default, { list: files }), document.getElementById('list'));
-	});
 
 	_reactDom2.default.render(React.createElement(_Player2.default, null), document.getElementById('app'));
 
@@ -21849,6 +21839,14 @@
 
 	var _Control2 = _interopRequireDefault(_Control);
 
+	var _List = __webpack_require__(196);
+
+	var _List2 = _interopRequireDefault(_List);
+
+	var _MusicPlayer = __webpack_require__(199);
+
+	var _MusicPlayer2 = _interopRequireDefault(_MusicPlayer);
+
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -21857,22 +21855,127 @@
 
 	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
+	var _window$require = window.require('electron'),
+	    ipcRenderer = _window$require.ipcRenderer;
+
 	var Player = function (_Component) {
 	    _inherits(Player, _Component);
 
 	    function Player(props) {
 	        _classCallCheck(this, Player);
 
-	        return _possibleConstructorReturn(this, (Player.__proto__ || Object.getPrototypeOf(Player)).call(this, props));
+	        var _this = _possibleConstructorReturn(this, (Player.__proto__ || Object.getPrototypeOf(Player)).call(this, props));
+
+	        _this.state = {
+	            musicPlayer: null,
+	            isPlaying: false,
+	            showList: false,
+	            list: [],
+	            current: 0,
+	            song: undefined
+	        };
+
+	        ipcRenderer.on('songs_imported', function (event, files) {
+	            console.log(files);
+	            var songs = files ? files : [];
+
+	            var musicPlayer = new _MusicPlayer2.default(songs);
+	            _this.setState({
+	                musicPlayer: musicPlayer,
+	                isPlaying: false,
+	                showList: false,
+	                list: musicPlayer.getSongList(),
+	                current: musicPlayer.getCurrent(),
+	                song: musicPlayer.getPlayingSong()
+	            });
+	        });
+
+	        return _this;
 	    }
 
 	    _createClass(Player, [{
+	        key: 'playCallback',
+	        value: function playCallback(index, playingSong) {
+	            this.setState({
+	                isPlaying: true,
+	                current: index,
+	                song: playingSong
+	            });
+
+	            this.state.siriWave.setAmplitude(0.8);
+	        }
+	    }, {
+	        key: 'controlCallback',
+	        value: function controlCallback(type) {
+	            var musicPlayer = this.state.musicPlayer;
+
+	            if (musicPlayer === null || typeof musicPlayer === 'undefined') return;
+
+	            console.log('operation type is ' + type);
+	            if (type === 'play') {
+	                musicPlayer.play(this.playCallback.bind(this));
+	            } else if (type === 'next') {
+	                musicPlayer.next(this.playCallback.bind(this));
+	            } else if (type === 'prev') {
+	                musicPlayer.prev(this.playCallback.bind(this));
+	            } else if (type === 'pause') {
+	                musicPlayer.pause();
+	                this.setState({
+	                    isPlaying: false
+	                });
+	                this.state.siriWave.setAmplitude(0);
+	            } else if (type === 'list') {
+	                this.setState({
+	                    showList: !this.state.showList
+	                });
+	            }
+	        }
+	    }, {
+	        key: 'chooseCallback',
+	        value: function chooseCallback(index) {
+	            var musicPlayer = this.state.musicPlayer;
+
+	            musicPlayer.play(index, this.playCallback.bind(this));
+	        }
+	    }, {
+	        key: 'componentDidMount',
+	        value: function componentDidMount() {
+
+	            var siriWave = new window.SiriWave({
+	                container: document.querySelector('.Wave'),
+	                width: 800,
+	                height: 200,
+	                speed: 0.1,
+	                color: '#999',
+	                frequency: 2,
+	                amplitude: 0
+	            });
+	            this.setState({ siriWave: siriWave });
+	            siriWave.start();
+	        }
+	    }, {
 	        key: 'render',
 	        value: function render() {
+	            var _state = this.state,
+	                list = _state.list,
+	                current = _state.current,
+	                song = _state.song,
+	                isPlaying = _state.isPlaying,
+	                siriWave = _state.siriWave,
+	                showList = _state.showList;
+
+
 	            return _react2.default.createElement(
 	                'div',
 	                null,
-	                _react2.default.createElement(_Control2.default, null)
+	                _react2.default.createElement(
+	                    'div',
+	                    { className: 'song-info' },
+	                    song && song.title
+	                ),
+	                _react2.default.createElement('div', { className: 'Wave' }),
+	                _react2.default.createElement(_Control2.default, { controlCallback: this.controlCallback.bind(this), isPlaying: isPlaying }),
+	                _react2.default.createElement(_List2.default, { list: list, showList: showList, chooseCallback: this.chooseCallback.bind(this), current: current })
 	            );
 	        }
 	    }]);
@@ -21920,8 +22023,6 @@
 	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
 
 	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-	// import '../css/List.css'
-
 
 	var Control = function (_Component) {
 	    _inherits(Control, _Component);
@@ -21933,8 +22034,17 @@
 	    }
 
 	    _createClass(Control, [{
+	        key: 'onControlClick',
+	        value: function onControlClick(type) {
+	            this.props.controlCallback(type);
+	        }
+	    }, {
 	        key: 'render',
 	        value: function render() {
+
+	            var status = this.props.isPlaying ? 'pause' : 'play';
+	            var visibleStyle = this.props.isPlaying ? { visibility: 'visible' } : { visibility: 'hidden' };
+
 	            return _react2.default.createElement(
 	                'div',
 	                { className: 'Control' },
@@ -21943,7 +22053,7 @@
 	                    { className: 'area left' },
 	                    _react2.default.createElement(
 	                        'span',
-	                        { className: 'play-button list' },
+	                        { className: 'play-button list', onClick: this.onControlClick.bind(this, 'list') },
 	                        _react2.default.createElement(_Button2.default, { type: 'list' })
 	                    )
 	                ),
@@ -21952,17 +22062,17 @@
 	                    { className: 'area center' },
 	                    _react2.default.createElement(
 	                        'span',
-	                        { className: 'play-button prev' },
+	                        { className: 'play-button prev', onClick: this.onControlClick.bind(this, 'prev'), style: visibleStyle },
 	                        _react2.default.createElement(_Button2.default, { type: 'prev' })
 	                    ),
 	                    _react2.default.createElement(
 	                        'span',
-	                        { className: 'play-button play' },
-	                        _react2.default.createElement(_Button2.default, { type: 'play' })
+	                        { className: 'play-button {status}', onClick: this.onControlClick.bind(this, status) },
+	                        _react2.default.createElement(_Button2.default, { type: status })
 	                    ),
 	                    _react2.default.createElement(
 	                        'span',
-	                        { className: 'play-button next' },
+	                        { className: 'play-button next', onClick: this.onControlClick.bind(this, 'next'), style: visibleStyle },
 	                        _react2.default.createElement(_Button2.default, { type: 'next' })
 	                    )
 	                ),
@@ -24640,7 +24750,7 @@
 
 
 	// module
-	exports.push([module.id, ".Button{\n    display: inline-block;\n    width: 100%;\n    height: 100%;\n    cursor: pointer;\n}\n\n.Button-list{\n    padding: 10px 14px;\n}\n\n.Button-list .item{\n    display: block;\n    width: 100%;\n    height: 5px;\n    margin: 6px 0;\n    background-color: #000;\n}\n\n.Button-prev{\n    padding: 20px 0 20px 14px;\n}\n\n.Button-prev .item{\n    display: block;\n    float: left;\n    border-top: solid 10px #000;\n    border-left: solid 10px #000;\n    border-bottom: solid 10px transparent;\n    border-right: solid 10px transparent;\n    transform: rotate(-45deg)\n}\n\n.Button-next{\n    padding: 20px 0 20px 4px;\n}\n\n.Button-next .item{\n    display: block;\n    float: left;\n    border-top: solid 10px #000;\n    border-left: solid 10px #000;\n    border-bottom: solid 10px transparent;\n    border-right: solid 10px transparent;\n    transform: rotate(135deg)\n}\n\n.Button-play{\n    padding: 12px 0 0 4px;\n}\n\n.Button-play .item{\n    width: 0;\n    display: block;\n    border-top: solid 16px #000;\n    border-left: solid 16px #000;\n    border-bottom: solid 16px transparent;\n    border-right: solid 16px transparent;\n    transform: rotate(135deg)\n}\n\n.Button-pause{\n    padding: 14px 0 0 12px;    \n}\n\n\n.Button-pause .item{\n    display: block;\n    float: left;\n    width: 8px;\n    height: 30px;\n    margin: 0 5px;\n    background-color: #000;\n}\n", ""]);
+	exports.push([module.id, ".Button{\n    display: inline-block;\n    width: 100%;\n    height: 100%;\n    cursor: pointer;\n}\n\n.Button-list{\n    padding: 12px 16px;\n}\n\n.Button-list .item{\n    display: block;\n    width: 100%;\n    height: 4px;\n    margin: 6px 0;\n    background-color: #000;\n}\n\n.Button-prev{\n    padding: 22px 0 0 14px;\n}\n\n.Button-prev .item{\n    display: block;\n    float: left;\n    border-top: solid 10px #000;\n    border-left: solid 10px transparent;\n    border-bottom: solid 10px transparent;\n    border-right: solid 10px transparent;\n    transform: rotate(90deg)\n}\n\n.Button-next{\n    padding: 22px 0 0 4px;\n}\n\n.Button-next .item{\n    display: block;\n    float: left;\n    border-top: solid 10px #000;\n    border-left: solid 10px transparent;\n    border-bottom: solid 10px transparent;\n    border-right: solid 10px transparent;\n    transform: rotate(-90deg)\n}\n\n.Button-play{\n    padding: 12px 0 0 24px;\n}\n\n.Button-play .item{\n    width: 0;\n    display: block;\n    border-top: solid 24px #000;\n    border-left: solid 16px transparent;\n    border-bottom: solid 16px transparent;\n    border-right: solid 16px transparent;\n    transform: rotate(-90deg)\n}\n\n.Button-pause{\n    padding: 18px 0 0 12px;    \n}\n\n\n.Button-pause .item{\n    display: block;\n    float: left;\n    width: 4px;\n    height: 26px;\n    margin: 0 5px;\n    background-color: #000;\n}\n", ""]);
 
 	// exports
 
@@ -24681,25 +24791,38 @@
 	    }
 
 	    _createClass(List, [{
+	        key: 'chooseSong',
+	        value: function chooseSong(i) {
+	            console.log('\u9009\u62E9\u4E86\u7B2C' + i + '\u9996\u6B4C\u66F2');
+	            this.props.chooseCallback(i);
+	        }
+	    }, {
 	        key: 'render',
 	        value: function render() {
-	            var list = this.props.list;
+	            var _this2 = this;
 
+	            var _props = this.props,
+	                list = _props.list,
+	                showList = _props.showList,
+	                current = _props.current;
+
+	            var style = showList ? { display: 'block' } : { display: 'none' };
 	            return _react2.default.createElement(
 	                'div',
-	                { className: 'Play-list' },
+	                { className: 'Play-list', style: style },
 	                _react2.default.createElement(
 	                    'ul',
 	                    null,
 	                    list.map(function (item, i) {
+	                        var activeClass = current === i ? 'active' : '';
 	                        var fileName = item.split('/');
 	                        fileName = fileName[fileName.length - 1];
 	                        return _react2.default.createElement(
 	                            'li',
-	                            { key: fileName, 'data-path': item },
+	                            { className: activeClass, key: fileName, 'data-path': item, onClick: _this2.chooseSong.bind(_this2, i) },
 	                            fileName
 	                        );
-	                    })
+	                    }.bind(this))
 	                )
 	            );
 	        }
@@ -24745,19 +24868,169 @@
 
 
 	// module
-	exports.push([module.id, ".Play-list{\n    position: fixed;\n    width: 300px;\n    height: 300px;\n    background-color: rgba(0, 0, 0, 0.1);\n    top:50%;\n    left:50%;\n    transform: translate(-50%, -50%);\n}\n\n.Play-list ul{\n    list-style: none;\n}\n\n.Play-list li{\n    display: block;\n    width: 100%;\n    line-height: 30px;\n    color: #460737;\n    padding-left: 20px;\n    cursor: pointer;\n}", ""]);
+	exports.push([module.id, ".Play-list{\n    position: fixed;\n    width: 300px;\n    height: 300px;\n    background-color: rgba(0, 0, 0, 0.1);\n    top:50%;\n    left:50%;\n    transform: translate(-50%, -50%);\n}\n\n.Play-list ul{\n    list-style: none;\n}\n\n.Play-list li{\n    display: block;\n    width: 100%;\n    line-height: 30px;\n    color: #460737;\n    padding-left: 20px;\n    cursor: pointer;\n}\n\n.Play-list li.active{\n    background-color: rgba(0,0,0,0.1)\n}", ""]);
 
 	// exports
 
 
 /***/ }),
 /* 199 */
+/***/ (function(module, exports) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	    value: true
+	});
+
+	var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	var MusicPlayer = function () {
+	    function MusicPlayer(songs) {
+	        _classCallCheck(this, MusicPlayer);
+
+	        this.songs = songs;
+	        this.index = 0;
+	        this.isPaused = false;
+	        this.list = [];
+	        this.producePlayList();
+	    }
+
+	    _createClass(MusicPlayer, [{
+	        key: 'producePlayList',
+	        value: function producePlayList() {
+	            var _this = this;
+
+	            var _iteratorNormalCompletion = true;
+	            var _didIteratorError = false;
+	            var _iteratorError = undefined;
+
+	            try {
+	                for (var _iterator = this.songs.entries()[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+	                    var _step$value = _slicedToArray(_step.value, 2),
+	                        index = _step$value[0],
+	                        item = _step$value[1];
+
+	                    var path = item;
+	                    var tmp = item.split('/');
+	                    var title = tmp[tmp.length - 1];
+	                    var howl = new Howl({
+	                        // urls: [path],
+	                        src: [path],
+	                        onend: function () {
+	                            _this.next();
+	                        }.bind(this)
+	                    });
+
+	                    this.list.push({
+	                        path: path,
+	                        title: title,
+	                        howl: howl
+	                    });
+	                }
+	            } catch (err) {
+	                _didIteratorError = true;
+	                _iteratorError = err;
+	            } finally {
+	                try {
+	                    if (!_iteratorNormalCompletion && _iterator.return) {
+	                        _iterator.return();
+	                    }
+	                } finally {
+	                    if (_didIteratorError) {
+	                        throw _iteratorError;
+	                    }
+	                }
+	            }
+	        }
+	    }, {
+	        key: 'getSongList',
+	        value: function getSongList() {
+	            return this.songs;
+	        }
+	    }, {
+	        key: 'getCurrent',
+	        value: function getCurrent() {
+	            return this.index;
+	        }
+	    }, {
+	        key: 'getPlayingSong',
+	        value: function getPlayingSong() {
+	            return this.list[this.index];
+	        }
+	    }, {
+	        key: 'play',
+	        value: function play(index, cb) {
+
+	            if (typeof index === 'function') {
+	                cb = index;
+	                index = this.index;
+	            }
+
+	            if (!this.isPaused) {
+	                this.list[this.index].howl.stop();
+	            }
+
+	            index = typeof index !== 'undefined' ? index : this.index;
+	            this.list[index].howl.play();
+	            this.index = index;
+	            this.isPaused = false;
+	            cb && cb(this.index, this.getPlayingSong());
+	        }
+	    }, {
+	        key: 'next',
+	        value: function next(cb) {
+	            var index = this.index;
+	            if (index + 1 >= this.list.length) {
+	                index = 0;
+	            } else {
+	                index++;
+	            }
+	            this.play(index, cb);
+	        }
+	    }, {
+	        key: 'prev',
+	        value: function prev(cb) {
+	            var index = this.index;
+	            if (index - 1 < 0) {
+	                index = this.list.length - 1;
+	            } else {
+	                index--;
+	            }
+	            this.play(index, cb);
+	        }
+	    }, {
+	        key: 'pause',
+	        value: function pause() {
+	            var song = this.list[this.index];
+	            song.howl.pause();
+	            this.isPaused = true;
+	        }
+	    }, {
+	        key: 'stop',
+	        value: function stop() {
+	            var song = this.list[this.index];
+	            song.howl.stop();
+	        }
+	    }]);
+
+	    return MusicPlayer;
+	}();
+
+	exports.default = MusicPlayer;
+
+/***/ }),
+/* 200 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(200);
+	var content = __webpack_require__(201);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
 	var update = __webpack_require__(191)(content, {});
@@ -24777,7 +25050,7 @@
 	}
 
 /***/ }),
-/* 200 */
+/* 201 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	exports = module.exports = __webpack_require__(186)(undefined);
@@ -24785,7 +25058,7 @@
 
 
 	// module
-	exports.push([module.id, "body{\n  background-color: rgb(246, 245, 241)  \n}\n\nbody *{\n  box-sizing: border-box;\n}\n\nul{\n  margin:0;\n  padding: 0;\n}", ""]);
+	exports.push([module.id, "body{\n  background-color: rgb(246, 245, 241)  \n}\n\nbody *{\n  box-sizing: border-box;\n}\n\nul{\n  margin:0;\n  padding: 0;\n}\n\n.song-info{\n  text-align: center;\n  margin: 100px 0;\n  height: 22px;\n  line-height: 22px;\n}", ""]);
 
 	// exports
 
