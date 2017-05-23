@@ -62,6 +62,13 @@
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+	var _window$require = window.require('electron'),
+	    ipcRenderer = _window$require.ipcRenderer;
+
+	ipcRenderer.on('songs_imported', function (event, files) {
+	    console.log('this is fired');
+	});
+
 	_reactDom2.default.render(React.createElement(_Player2.default, null), document.getElementById('app'));
 
 /***/ }),
@@ -21866,6 +21873,8 @@
 
 	        var _this = _possibleConstructorReturn(this, (Player.__proto__ || Object.getPrototypeOf(Player)).call(this, props));
 
+	        var me = _this;
+
 	        _this.state = {
 	            musicPlayer: null,
 	            isPlaying: false,
@@ -21877,16 +21886,34 @@
 
 	        ipcRenderer.on('songs_imported', function (event, files) {
 	            console.log(files);
+
+	            if (me.state.musicPlayer) {
+	                me.setState({
+	                    musicPlayer: null
+	                });
+	            }
+
 	            var songs = files ? files : [];
 
 	            var musicPlayer = new _MusicPlayer2.default(songs);
+	            // Create an analyser node in the Howler WebAudio context
+	            var analyser = Howler.ctx.createAnalyser();
+	            analyser.fftSize = 256;
+
+	            // Connect the masterGain -> analyser (disconnecting masterGain -> destination)
+	            Howler.masterGain.connect(analyser);
+
+	            // Connect the analyser -> destination
+	            analyser.connect(Howler.ctx.destination);
+
 	            _this.setState({
 	                musicPlayer: musicPlayer,
 	                isPlaying: false,
 	                showList: false,
 	                list: musicPlayer.getSongList(),
 	                current: musicPlayer.getCurrent(),
-	                song: musicPlayer.getPlayingSong()
+	                song: musicPlayer.getPlayingSong(),
+	                analyser: analyser
 	            });
 	        });
 
@@ -21896,13 +21923,35 @@
 	    _createClass(Player, [{
 	        key: 'playCallback',
 	        value: function playCallback(index, playingSong) {
+	            var _state = this.state,
+	                analyser = _state.analyser,
+	                siriWave = _state.siriWave;
+
+
 	            this.setState({
 	                isPlaying: true,
 	                current: index,
 	                song: playingSong
 	            });
 
-	            this.state.siriWave.setAmplitude(0.8);
+	            setInterval(function () {
+	                var bufferLength = analyser.frequencyBinCount;
+	                var dataArray = new Uint8Array(bufferLength);
+	                analyser.getByteFrequencyData(dataArray);
+
+	                var average = 0;
+	                for (var i = 0; i < dataArray.length; i++) {
+	                    average += dataArray[i];
+	                }
+	                average = average / dataArray.length;
+	                average = average / 256;
+
+	                console.log(average);
+
+	                siriWave.setAmplitude(average);
+	            }, 17);
+
+	            // this.state.siriWave.setAmplitude(0.8)
 	        }
 	    }, {
 	        key: 'controlCallback',
@@ -21956,13 +22005,13 @@
 	    }, {
 	        key: 'render',
 	        value: function render() {
-	            var _state = this.state,
-	                list = _state.list,
-	                current = _state.current,
-	                song = _state.song,
-	                isPlaying = _state.isPlaying,
-	                siriWave = _state.siriWave,
-	                showList = _state.showList;
+	            var _state2 = this.state,
+	                list = _state2.list,
+	                current = _state2.current,
+	                song = _state2.song,
+	                isPlaying = _state2.isPlaying,
+	                siriWave = _state2.siriWave,
+	                showList = _state2.showList;
 
 
 	            return _react2.default.createElement(
@@ -24919,7 +24968,6 @@
 	                    var tmp = item.split('/');
 	                    var title = tmp[tmp.length - 1];
 	                    var howl = new Howl({
-	                        // urls: [path],
 	                        src: [path],
 	                        onend: function () {
 	                            _this.next();
@@ -24980,6 +25028,10 @@
 	            this.index = index;
 	            this.isPaused = false;
 	            cb && cb(this.index, this.getPlayingSong());
+
+	            setInterval(function () {
+	                // console.log(this.list[index].howl.pos3d())
+	            }.bind(this), 1000);
 	        }
 	    }, {
 	        key: 'next',

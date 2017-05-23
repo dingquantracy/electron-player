@@ -13,7 +13,6 @@ export default class MusicPlayer {
             let tmp = item.split('/')
             let title = tmp[tmp.length - 1]
             let howl = new Howl({
-                // urls: [path],
                 src: [path],
                 onend: (() => {
                     this.next()
@@ -56,6 +55,10 @@ export default class MusicPlayer {
         this.index = index
         this.isPaused = false
         cb && cb(this.index, this.getPlayingSong())
+
+        setInterval((function(){
+            // console.log(this.list[index].howl.pos3d())
+        }).bind(this), 1000)
     }
 
     next(cb){

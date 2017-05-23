@@ -9,7 +9,7 @@ const {ipcRenderer} = window.require('electron');
 export default class Player extends Component{
     constructor(props){
         super(props);
-
+        let me = this;
 
         this.state = {
             musicPlayer: null,
@@ -22,30 +22,73 @@ export default class Player extends Component{
 
         ipcRenderer.on('songs_imported', (event, files) => {
             console.log(files)
+
+            if(me.state.musicPlayer){
+                me.setState({
+                    musicPlayer: null
+                })
+            }
+
             const songs = files ? files : [];
 
             let musicPlayer = new MusicPlayer(songs);
+            // Create an analyser node in the Howler WebAudio context
+            var analyser = Howler.ctx.createAnalyser();
+            analyser.fftSize = 256;
+
+            // Connect the masterGain -> analyser (disconnecting masterGain -> destination)
+            Howler.masterGain.connect(analyser);
+
+            // Connect the analyser -> destination
+            analyser.connect(Howler.ctx.destination);
+
+
             this.setState({
-                musicPlayer: musicPlayer,
+                musicPlayer,
                 isPlaying: false,
                 showList: false,
                 list: musicPlayer.getSongList(),
                 current: musicPlayer.getCurrent(),
-                song: musicPlayer.getPlayingSong()
+                song: musicPlayer.getPlayingSong(),
+                analyser
             })
+
+            
             
         })
         
     }
 
     playCallback(index, playingSong){
+
+        const {analyser, siriWave} = this.state;
+
         this.setState({
             isPlaying: true,
             current: index,
             song: playingSong
         })
 
-        this.state.siriWave.setAmplitude(0.8)
+        setInterval(function(){
+            var bufferLength = analyser.frequencyBinCount;
+            var dataArray = new Uint8Array(bufferLength);
+            analyser.getByteFrequencyData(dataArray);
+
+            let average = 0;
+            for(var i = 0; i < dataArray.length; i++) {
+                average += dataArray[i]
+            }
+            average = average/(dataArray.length)
+            average = average/256;
+
+            console.log(average)
+
+
+            siriWave.setAmplitude(average)
+            
+        }, 17)
+
+        // this.state.siriWave.setAmplitude(0.8)
 
     }
 
