@@ -1,11 +1,13 @@
 export default class MusicPlayer {
-    constructor (songs) {
+    constructor (songs, onEnd) {
         this.songs = songs;
         this.index = 0;
         this.isPaused = false;
         this.list = [];
+        this.onEnd = onEnd;
         this.producePlayList();
-    }
+
+    }   
 
     producePlayList (){
         for(let [index, item] of this.songs.entries()){
@@ -15,7 +17,7 @@ export default class MusicPlayer {
             let howl = new Howl({
                 src: [path],
                 onend: (() => {
-                    this.next()
+                    this.next(this.onEnd)
                 }).bind(this)
             })
 
@@ -50,15 +52,12 @@ export default class MusicPlayer {
             this.list[this.index].howl.stop(); 
         }
         
-        index = typeof index !== 'undefined' ? index : this.index;
-        this.list[index].howl.play();
+        index = typeof index !== 'undefined' ? index : this.index
+        this.list[index].howl.play()
         this.index = index
         this.isPaused = false
         cb && cb(this.index, this.getPlayingSong())
 
-        setInterval((function(){
-            // console.log(this.list[index].howl.pos3d())
-        }).bind(this), 1000)
     }
 
     next(cb){

@@ -9,11 +9,10 @@ app.on('ready', function(){
     mainWindow = new BrowserWindow({
         width: 800,
         height: 500,
-        resizable: true
+        resizable: false
     })
 
     mainWindow.loadURL(`file://${__dirname}/index.html`)
-    mainWindow.webContents.openDevTools()
     
     const template = [{
        click(){
@@ -43,6 +42,12 @@ app.on('ready', function(){
             accelerator: 'CommandOrControl+R',
             click(){
                 mainWindow.reload();
+            }
+        }, {
+            label: '打开控制台',
+            accelerator: 'CommandOrControl+I',
+            click(){
+                mainWindow.webContents.openDevTools()
             }
         }]
     }];

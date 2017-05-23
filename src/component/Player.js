@@ -1,7 +1,8 @@
-import React, {Component} from 'react';
-import Control from './Control';
-import List from './List';
+import React, {Component} from 'react'
+import Control from './Control'
+import List from './List'
 import MusicPlayer from '../MusicPlayer'
+import SiriWave from '../SiriWave'
 
 const {ipcRenderer} = window.require('electron');
 
@@ -20,18 +21,23 @@ export default class Player extends Component{
             song: undefined
         };
 
+        
+
         ipcRenderer.on('songs_imported', (event, files) => {
             console.log(files)
 
-            if(me.state.musicPlayer){
-                me.setState({
-                    musicPlayer: null
-                })
-            }
-
             const songs = files ? files : [];
 
-            let musicPlayer = new MusicPlayer(songs);
+            if(songs.length <= 0) return;
+
+            if(me.state.musicPlayer){
+                me.state.musicPlayer.stop()
+                me.data.siriWave.reset()
+            }
+
+            
+
+            let musicPlayer = new MusicPlayer(songs, me.playCallback.bind(me));
             // Create an analyser node in the Howler WebAudio context
             var analyser = Howler.ctx.createAnalyser();
             analyser.fftSize = 256;
@@ -61,7 +67,8 @@ export default class Player extends Component{
 
     playCallback(index, playingSong){
 
-        const {analyser, siriWave} = this.state;
+        const {analyser} = this.state
+        const {siriWave} = this.data
 
         this.setState({
             isPlaying: true,
@@ -69,26 +76,21 @@ export default class Player extends Component{
             song: playingSong
         })
 
-        setInterval(function(){
-            var bufferLength = analyser.frequencyBinCount;
-            var dataArray = new Uint8Array(bufferLength);
+        siriWave.reset();
+        siriWave.refresh(()=>{
+            let bufferLength = analyser.frequencyBinCount;
+            let dataArray = new Uint8Array(bufferLength);
             analyser.getByteFrequencyData(dataArray);
 
-            let average = 0;
+            let average = 0
             for(var i = 0; i < dataArray.length; i++) {
                 average += dataArray[i]
             }
             average = average/(dataArray.length)
-            average = average/256;
+            average = average/256
 
-            console.log(average)
-
-
-            siriWave.setAmplitude(average)
-            
-        }, 17)
-
-        // this.state.siriWave.setAmplitude(0.8)
+            return average
+        })
 
     }
 
@@ -110,7 +112,7 @@ export default class Player extends Component{
             this.setState({
                 isPlaying: false
             })
-            this.state.siriWave.setAmplitude(0)
+            this.data.siriWave.reset()
             
         }else if(type === 'list'){
             this.setState({
@@ -126,18 +128,10 @@ export default class Player extends Component{
     }
 
     componentDidMount(){
-
-        let siriWave = new window.SiriWave({
-            container: document.querySelector('.Wave'),
-            width: 800,
-            height: 200,
-            speed: 0.1,
-            color: '#999',
-            frequency: 2,
-            amplitude: 0
-        });
-        this.setState({siriWave})
-        siriWave.start();
+        this.data = {
+            siriWave: new SiriWave()
+        }
+        this.data.siriWave.start()
     }
 
     render(){

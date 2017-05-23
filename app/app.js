@@ -58,7 +58,7 @@
 
 	var _List2 = _interopRequireDefault(_List);
 
-	__webpack_require__(200);
+	__webpack_require__(201);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -21854,6 +21854,10 @@
 
 	var _MusicPlayer2 = _interopRequireDefault(_MusicPlayer);
 
+	var _SiriWave = __webpack_require__(200);
+
+	var _SiriWave2 = _interopRequireDefault(_SiriWave);
+
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -21887,15 +21891,16 @@
 	        ipcRenderer.on('songs_imported', function (event, files) {
 	            console.log(files);
 
-	            if (me.state.musicPlayer) {
-	                me.setState({
-	                    musicPlayer: null
-	                });
-	            }
-
 	            var songs = files ? files : [];
 
-	            var musicPlayer = new _MusicPlayer2.default(songs);
+	            if (songs.length <= 0) return;
+
+	            if (me.state.musicPlayer) {
+	                me.state.musicPlayer.stop();
+	                me.data.siriWave.reset();
+	            }
+
+	            var musicPlayer = new _MusicPlayer2.default(songs, me.playCallback.bind(me));
 	            // Create an analyser node in the Howler WebAudio context
 	            var analyser = Howler.ctx.createAnalyser();
 	            analyser.fftSize = 256;
@@ -21923,9 +21928,8 @@
 	    _createClass(Player, [{
 	        key: 'playCallback',
 	        value: function playCallback(index, playingSong) {
-	            var _state = this.state,
-	                analyser = _state.analyser,
-	                siriWave = _state.siriWave;
+	            var analyser = this.state.analyser;
+	            var siriWave = this.data.siriWave;
 
 
 	            this.setState({
@@ -21934,7 +21938,8 @@
 	                song: playingSong
 	            });
 
-	            setInterval(function () {
+	            siriWave.reset();
+	            siriWave.refresh(function () {
 	                var bufferLength = analyser.frequencyBinCount;
 	                var dataArray = new Uint8Array(bufferLength);
 	                analyser.getByteFrequencyData(dataArray);
@@ -21946,12 +21951,8 @@
 	                average = average / dataArray.length;
 	                average = average / 256;
 
-	                console.log(average);
-
-	                siriWave.setAmplitude(average);
-	            }, 17);
-
-	            // this.state.siriWave.setAmplitude(0.8)
+	                return average;
+	            });
 	        }
 	    }, {
 	        key: 'controlCallback',
@@ -21972,7 +21973,7 @@
 	                this.setState({
 	                    isPlaying: false
 	                });
-	                this.state.siriWave.setAmplitude(0);
+	                this.data.siriWave.reset();
 	            } else if (type === 'list') {
 	                this.setState({
 	                    showList: !this.state.showList
@@ -21989,29 +21990,21 @@
 	    }, {
 	        key: 'componentDidMount',
 	        value: function componentDidMount() {
-
-	            var siriWave = new window.SiriWave({
-	                container: document.querySelector('.Wave'),
-	                width: 800,
-	                height: 200,
-	                speed: 0.1,
-	                color: '#999',
-	                frequency: 2,
-	                amplitude: 0
-	            });
-	            this.setState({ siriWave: siriWave });
-	            siriWave.start();
+	            this.data = {
+	                siriWave: new _SiriWave2.default()
+	            };
+	            this.data.siriWave.start();
 	        }
 	    }, {
 	        key: 'render',
 	        value: function render() {
-	            var _state2 = this.state,
-	                list = _state2.list,
-	                current = _state2.current,
-	                song = _state2.song,
-	                isPlaying = _state2.isPlaying,
-	                siriWave = _state2.siriWave,
-	                showList = _state2.showList;
+	            var _state = this.state,
+	                list = _state.list,
+	                current = _state.current,
+	                song = _state.song,
+	                isPlaying = _state.isPlaying,
+	                siriWave = _state.siriWave,
+	                showList = _state.showList;
 
 
 	            return _react2.default.createElement(
@@ -24939,13 +24932,14 @@
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 	var MusicPlayer = function () {
-	    function MusicPlayer(songs) {
+	    function MusicPlayer(songs, onEnd) {
 	        _classCallCheck(this, MusicPlayer);
 
 	        this.songs = songs;
 	        this.index = 0;
 	        this.isPaused = false;
 	        this.list = [];
+	        this.onEnd = onEnd;
 	        this.producePlayList();
 	    }
 
@@ -24970,7 +24964,7 @@
 	                    var howl = new Howl({
 	                        src: [path],
 	                        onend: function () {
-	                            _this.next();
+	                            _this.next(_this.onEnd);
 	                        }.bind(this)
 	                    });
 
@@ -25028,10 +25022,6 @@
 	            this.index = index;
 	            this.isPaused = false;
 	            cb && cb(this.index, this.getPlayingSong());
-
-	            setInterval(function () {
-	                // console.log(this.list[index].howl.pos3d())
-	            }.bind(this), 1000);
 	        }
 	    }, {
 	        key: 'next',
@@ -25077,12 +25067,73 @@
 
 /***/ }),
 /* 200 */
+/***/ (function(module, exports) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	    value: true
+	});
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	var SiriWave = function () {
+	    function SiriWave() {
+	        _classCallCheck(this, SiriWave);
+
+	        this.siriWave = new window.SiriWave({
+	            container: document.querySelector('.Wave'),
+	            width: 800,
+	            height: 200,
+	            speed: 0.1,
+	            color: '#999',
+	            frequency: 2,
+	            amplitude: 0
+	        });
+	    }
+
+	    _createClass(SiriWave, [{
+	        key: 'start',
+	        value: function start() {
+	            this.siriWave.start();
+	        }
+	    }, {
+	        key: 'stop',
+	        value: function stop() {
+	            this.siriWave.stop();
+	        }
+	    }, {
+	        key: 'refresh',
+	        value: function refresh(cb) {
+	            var me = this;
+	            this.timeId = setInterval(function () {
+	                var average = cb();
+	                me.siriWave.setAmplitude(average);
+	            }, 17);
+	        }
+	    }, {
+	        key: 'reset',
+	        value: function reset() {
+	            clearInterval(this.timeId);
+	            this.siriWave.setAmplitude(0);
+	        }
+	    }]);
+
+	    return SiriWave;
+	}();
+
+	exports.default = SiriWave;
+
+/***/ }),
+/* 201 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(201);
+	var content = __webpack_require__(202);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
 	var update = __webpack_require__(191)(content, {});
@@ -25102,7 +25153,7 @@
 	}
 
 /***/ }),
-/* 201 */
+/* 202 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	exports = module.exports = __webpack_require__(186)(undefined);
