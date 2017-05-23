@@ -3,10 +3,13 @@
   "version": "0.0.1",
   "description": "use electron to build music player",
   "main": "index.js",
+  "productName": "Music Player",
   "scripts": {
     "start": "electron index.js",
     "build": "webpack",
-    "watch": "watch 'npm run build' src"
+    "watch": "watch 'npm run build' src",
+    "package-mac": "electron-packager . --overwrite --platform=darwin --arch=x64 --icon=assets/icons/icon.icns --prune=true --out=release-builds",
+    "package-win": "electron-packager . --overwrite --asar=true --platform=win32 --arch=ia32 --icon=assets/icons/icon.ico --prune=true --out=release-builds --version-string.CompanyName=CE --version-string.FileDescription=CE --version-string.ProductName=\"Music Player\""
   },
   "repository": {
     "type": "git",
@@ -29,6 +32,7 @@
     "babel-preset-react": "^6.23.0",
     "css-loader": "^0.27.3",
     "electron": "^1.6.7",
+    "electron-packager": "^8.7.0",
     "file-loader": "^0.11.1",
     "react": "^15.4.2",
     "react-addons-css-transition-group": "^15.4.2",
