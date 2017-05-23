@@ -55,3 +55,7 @@ app.on('ready', function(){
     Menu.setApplicationMenu(menu)
 
 })
+
+app.on('window-all-closed', () => {
+  app.quit()
+})
