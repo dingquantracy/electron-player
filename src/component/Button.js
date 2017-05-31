@@ -1,6 +1,7 @@
 import React, {Component} from 'react'
 import '../css/Button.css'
 
+
 export default class Button extends Component{
     constructor(props){
         super(props)
@@ -37,6 +38,17 @@ export default class Button extends Component{
         </div>);
 
 
+        const volumeButton = (<div className="Button Button-volume">
+            <span className="item item-0">
+                <span className="item item-1">
+                    <span className="item item-2">
+                        <span className="item item-3"></span>
+                    </span>
+                </span>
+            </span>
+        </div>);
+
+
         let whichButton = null;
 
         if(type === 'list') {
@@ -49,6 +61,8 @@ export default class Button extends Component{
             whichButton = playButton;
         }else if(type === 'pause'){
             whichButton = pauseButton;
+        }else if(type === 'volume'){
+            whichButton = volumeButton;
         }
 
         return(whichButton);

@@ -15,6 +15,7 @@
 
 .Control .area.left, .Control .area.right{
     flex: 1;
+    position: relative;
 }
 
 .Control .area.center{
@@ -33,5 +34,25 @@
 
 .Control .play-button.list{
    
+}
+
+
+.mySlider{
+    border-color: rgb(246, 245, 241) !important;
+}
+
+.mySlider .ant-slider-handle{
+    border-color: #000 !important;
+}
+.mySlider:hover .ant-slider-handle{
+    border-color: #000 !important;
+}
+
+.mySlider .ant-slider-track{
+    background-color: #000 !important;
+}
+
+.mySlider:hover .ant-slider-track{
+    background-color: #000 !important;
 }
 
