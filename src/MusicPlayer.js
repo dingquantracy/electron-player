@@ -91,4 +91,9 @@ export default class MusicPlayer {
         let song = this.list[this.index];
         song.howl.stop();
     }
+
+    setVolume(value) {
+        let song = this.list[this.index];
+        song.howl.volume(value);
+    }
 }

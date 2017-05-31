@@ -16,6 +16,7 @@ export default class Player extends Component{
             musicPlayer: null,
             isPlaying: false,
             showList: false,
+            showVolume: false,
             list: [],
             current: 0,
             song: undefined
@@ -53,6 +54,7 @@ export default class Player extends Component{
                 musicPlayer,
                 isPlaying: false,
                 showList: false,
+                showVolume: false,
                 list: musicPlayer.getSongList(),
                 current: musicPlayer.getCurrent(),
                 song: musicPlayer.getPlayingSong(),
@@ -118,6 +120,11 @@ export default class Player extends Component{
             this.setState({
                 showList: !this.state.showList
             });
+        }else if(type === 'volume'){
+            console.log(this.state.showVolume)
+            this.setState({
+                showVolume: !this.state.showVolume
+            });
         }
 
     }    
@@ -125,6 +132,12 @@ export default class Player extends Component{
     chooseCallback(index){
         const {musicPlayer} = this.state;
         musicPlayer.play(index, this.playCallback.bind(this))
+    }
+
+    adjustVolumeCallback(value){
+        console.log(value)
+        const {musicPlayer} = this.state;
+        musicPlayer.setVolume(value/100);
     }
 
     componentDidMount(){
@@ -136,12 +149,11 @@ export default class Player extends Component{
 
     render(){
 
-        const {list, current, song, isPlaying, siriWave, showList} = this.state;
-
+        const {list, current, song, isPlaying, siriWave, showList, showVolume} = this.state;
         return(<div>
             <div className="song-info">{song && song.title}</div>
             <div className="Wave"></div>
-            <Control controlCallback={this.controlCallback.bind(this)} isPlaying={isPlaying} />
+            <Control controlCallback={this.controlCallback.bind(this)} isPlaying={isPlaying} showVolume={showVolume} adjustVolumeCallback={this.adjustVolumeCallback.bind(this)}/>
             <List list={list} showList={showList} chooseCallback={this.chooseCallback.bind(this)} current={current}/>
         </div>);
     }
