@@ -29,6 +29,7 @@ export default class Control extends Component{
             display: this.props.showVolume ? 'block' : 'none'
         };
 
+
         return(<div className="Control">
             
             <div className="area left">
