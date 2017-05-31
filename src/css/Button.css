@@ -72,3 +72,37 @@
     margin: 0 5px;
     background-color: #000;
 }
+
+.Button-volume{
+}
+
+
+.Button-volume .item{
+    display: block;
+    background-color: transparent;
+    border: solid 2px transparent;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 100%;
+    border-top: 2px solid #000;
+    
+}
+
+.Button-volume .item-0{
+    width: 40px;
+    height: 40px;
+}
+.Button-volume .item-1{
+    width: 26px;
+    height: 26px;
+}
+.Button-volume .item-2{
+    width: 14px;
+    height: 14px;
+}
+.Button-volume .item-3{
+    width: 0;
+    height: 0;
+}
